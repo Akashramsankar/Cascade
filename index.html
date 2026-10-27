@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="HandheldFriendly" content="true" />
+<meta name="theme-color" content="#f6f3ec" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#171512" media="(prefers-color-scheme: dark)" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Cascade" />
+<title>Cascade — Daily Word Gravity</title>
+<meta name="description" content="Vowels rise, consonants sink. Spell words to lighten the columns and drop all three weights. A free daily word puzzle." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23f6f3ec'/%3E%3Crect x='5' y='4' width='10' height='10' rx='2.5' fill='%23dfe7ef' stroke='%232f5d8a' stroke-width='1.6'/%3E%3Crect x='17' y='11' width='10' height='10' rx='2.5' fill='%23fff' stroke='%23a39d92' stroke-width='1.6'/%3E%3Crect x='11' y='22' width='10' height='7' rx='2' fill='%231b1916'/%3E%3C/svg%3E" />
+
+<script>
+  // Apply the saved theme before first paint so there is no flash.
+  (function () {
+    try {
+      var t = localStorage.getItem("cascadeTheme");
+      if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t);
+    } catch (e) {}
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,800;9..144,900&family=Libre+Franklin:wght@400;500;600;700;800&display=swap"
+  rel="stylesheet"
+/>
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header>
+    <button class="help-btn" id="helpBtn" type="button" aria-label="How to play" title="How to play">?</button>
+    <button class="cal-btn" id="calBtn" type="button" aria-label="Open puzzle archive" title="Puzzle archive">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+        <line x1="3" y1="10" x2="21" y2="10"></line>
+        <line x1="8" y1="3" x2="8" y2="7"></line>
+        <line x1="16" y1="3" x2="16" y2="7"></line>
+        <path d="M8 14h.01"></path>
+        <path d="M12 14h.01"></path>
+        <path d="M16 14h.01"></path>
+      </svg>
+    </button>
+    <button class="stats-btn" id="statsBtn" type="button" aria-label="Statistics" title="Statistics">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V10M12 20V4M19 20v-7"/></svg>
+    </button>
+    <button class="theme-btn" id="themeBtn" type="button" aria-label="Switch to dark mode" title="Theme">
+      <svg class="ico ico-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M18.7 5.3l-1.8 1.8M7.1 16.9l-1.8 1.8"/></svg>
+      <svg class="ico ico-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>
+    </button>
+    <button class="lb-btn" id="lbBtn" type="button" aria-label="Today's leaderboard" title="Today's leaderboard">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4z"></path>
+        <path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4"></path>
+      </svg>
+    </button>
+    <button class="games-btn" id="gamesBtn" type="button" aria-label="More games" title="More games">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+    </button>
+    <h1>Cascade</h1>
+    <div class="sub">Daily word gravity</div>
+    <div class="sub meta" id="dateLabel"></div>
+  </header>
+
+  <div class="card">
+    <div class="clue-head">
+      <span class="clue-label" id="wordLabel">Your word</span>
+      <span class="difficulty" id="difficulty"></span>
+    </div>
+    <div class="word-line" id="wordLine" aria-live="polite"></div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><span class="v" id="moves">0</span><span class="l">Moves</span></div>
+    <div class="stat par"><span class="v" id="par">–</span><span class="l">Par</span></div>
+    <div class="stat"><span class="v" id="weights">0/3</span><span class="l">Weights</span></div>
+    <div class="stat"><span class="v" id="clock">0:00</span><span class="l">Time</span></div>
+  </div>
+
+  <div class="stage" id="stage">
+    <div class="chutes" id="chutes" aria-label="Next tiles in each column"></div>
+    <div id="grid">
+      <div class="wells" id="wells" aria-hidden="true"></div>
+      <div class="tiles" id="tiles"></div>
+      <svg id="overlay" aria-hidden="true"><polyline id="trace"/></svg>
+    </div>
+    <div class="meters" id="meters" aria-label="Column balance"></div>
+  </div>
+
+  <div class="stuck" id="stuck" hidden>No words left on the board. Undo a move or reset.</div>
+
+  <div class="controls">
+    <button class="act" id="hintBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg><span>Hint</span></button>
+    <button class="act" id="undoBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg><span>Undo</span></button>
+    <button class="act" id="resetBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg><span>Reset</span></button>
+  </div>
+
+  <div class="hint" id="modeHint">
+    Drag through touching letters to spell a word. <span class="vw">Vowels</span> rise and consonants sink.
+    A <b>weight</b> drops once its column holds more vowels than consonants.
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- Statistics -->
+  <div class="modal" id="statsModal">
+    <div class="win-wrap">
+      <button class="x-close" type="button" aria-label="Close statistics"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <div class="win">
+        <h2>Statistics</h2>
+        <div class="winstats standalone">
+          <div class="srow">
+            <div class="scell"><b id="smPlayed">0</b><span>Played</span></div>
+            <div class="scell"><b id="smStreak">0</b><span>Streak</span></div>
+            <div class="scell"><b id="smMax">0</b><span>Max streak</span></div>
+          </div>
+          <div class="sdist" id="smDist"></div>
+        </div>
+        <button class="secondary" data-close>Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Archive -->
+  <div class="modal" id="archiveModal">
+    <div class="win-wrap">
+      <button class="x-close" type="button" aria-label="Close puzzle archive"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <div class="win archive">
+        <h2>Puzzle archive</h2>
+        <div class="arch-sub">Pick any past day to play it. Only today's solve counts toward your streak.</div>
+        <div class="arch-list" id="archList"></div>
+        <button class="secondary" data-close>Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- More games -->
+  <div class="modal" id="gamesModal">
+    <div class="win-wrap">
+      <button class="x-close" type="button" aria-label="Close more games"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <div class="win games">
+        <h2>More games</h2>
+        <div class="arch-sub">A weekly heist, plus more daily word puzzles from the same workshop.</div>
+        <a class="game-card" href="https://akashramsankar.github.io/Tumbler/" target="_blank" rel="noopener">
+          <span class="game-card-mark"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.5"/></svg></span>
+          <span class="game-card-body">
+            <span class="game-card-title">Tumbler</span>
+            <span class="game-card-desc">Crack the daily 4-letter code in 6 attempts. Follow the arrows and outsmart the vault.</span>
+          </span>
+          <svg class="game-card-arrow" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7"/><path d="M9 7h8v8"/></svg>
+        </a>
+        <a class="game-card" href="https://akashramsankar.github.io/currents/" target="_blank" rel="noopener">
+          <span class="game-card-mark"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12c3-4 6-4 9 0s6 4 9 0"/><path d="M3 17c3-4 6-4 9 0s6 4 9 0"/><path d="M3 7c3-4 6-4 9 0s6 4 9 0"/></svg></span>
+          <span class="game-card-body">
+            <span class="game-card-title">Currents</span>
+            <span class="game-card-desc">Slide the grid until the answer's letters link up into one unbroken circuit.</span>
+          </span>
+          <svg class="game-card-arrow" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7"/><path d="M9 7h8v8"/></svg>
+        </a>
+        <a class="game-card" href="https://akashramsankar.github.io/TypeSet/" target="_blank" rel="noopener">
+          <span class="game-card-mark"><svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg></span>
+          <span class="game-card-body">
+            <span class="game-card-title">Typeset</span>
+            <span class="game-card-desc">Drag letter blocks into the 5×5 press until every row and column reads as a word.</span>
+          </span>
+          <svg class="game-card-arrow" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7"/><path d="M9 7h8v8"/></svg>
+        </a>
+        <button class="secondary" data-close>Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- How to play: concise deck -->
+  <div class="modal" id="rulesModal">
+    <div class="win-wrap">
+      <button class="x-close" type="button" aria-label="Close how to play"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <div class="win rules">
+        <h2>How to play</h2>
+
+        <div class="slide on">
+          <div class="sic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7l5 5-5 5"/><path d="M11 17h9"/></svg></div>
+          <h3>Spell words</h3>
+          <p class="sd">Drag (or tap) through <b>touching tiles</b> to spell a word of 3+ letters. Diagonals count. Each word is one move.</p>
+          <div class="mini-row" aria-hidden="true"><i class="pt">C</i><i class="pt vw">A</i><i class="pt">T</i></div>
+        </div>
+
+        <div class="slide">
+          <div class="sic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18"/><path d="M8 7l4-4 4 4"/><path d="M8 17l4 4 4-4"/></svg></div>
+          <h3>Oil &amp; water</h3>
+          <p class="sd">After every word, the columns it touched close up. <b>Vowels rise</b> to the top and <b>consonants sink</b> to the bottom. New tiles drop in from the chutes above.</p>
+          <div class="demo-sort" aria-hidden="true">
+            <div class="mini-col"><i>R</i><i class="vw">E</i><i>T</i><i class="vw">O</i></div>
+            <div class="arrow"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg></div>
+            <div class="mini-col"><i class="vw">E</i><i class="vw">O</i><i>R</i><i>T</i></div>
+          </div>
+        </div>
+
+        <div class="slide">
+          <div class="sic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7a3 3 0 0 1 6 0"/><path d="M6.5 9h11l2 11h-15z"/></svg></div>
+          <h3>Drop the weights</h3>
+          <p class="sd">Three weights sit on the floor. A weight breaks loose once its column holds <b>more vowels than consonants</b>. The meter under each one keeps count.</p>
+          <div class="demo-weight" aria-hidden="true">
+            <div class="mini-col"><i class="vw">A</i><i class="vw">I</i><i>N</i><i class="wt"></i></div>
+            <div class="meter-demo"><span class="up">▲2</span><span class="dn">▼1</span></div>
+          </div>
+          <p class="note">Spend consonants, save vowels. Long, consonant-heavy words are gold.</p>
+        </div>
+
+        <div class="slide">
+          <div class="sic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></div>
+          <h3>Cascades</h3>
+          <p class="sd">If shifting tiles line up an everyday word by themselves (reading <b>→</b> or <b>↓</b>), it clears automatically. <span class="jp">Cascades are free</span> and can chain.</p>
+          <div class="mini-row" aria-hidden="true"><i class="pt cs">S</i><i class="pt cs vw">U</i><i class="pt cs">N</i></div>
+        </div>
+
+        <div class="slide">
+          <div class="sic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V4"/><path d="M4 5h12l-3 4 3 4H4"/></svg></div>
+          <h3>Beat par</h3>
+          <div class="facts">
+            <div class="f"><div class="k"><i class="pt st"></i></div><div class="v"><b>Stone</b>Can't be spelled and sinks like a consonant. Play a word touching it to smash it.</div></div>
+            <div class="f"><div class="k"><i class="pt wc">?</i></div><div class="v"><b>Wildcard</b>Stands in for any letter, but using it costs an extra move.</div></div>
+            <div class="f"><div class="k"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg></div><div class="v"><b>Par</b>Everyone gets the same board. Finish under par for a <span class="gd">Birdie</span> or <span class="gd">Eagle</span>. Hint shows a way forward, but each tap adds 1 to your leaderboard score.</div></div>
+          </div>
+        </div>
+
+        <div class="deck-nav">
+          <div class="dots" id="deckDots"></div>
+          <button id="deckNext" type="button">Next</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Win -->
+  <div class="modal" id="winModal">
+    <div class="win-wrap">
+      <button class="x-close" type="button" aria-label="Close results"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <div class="win">
+        <h2>Weights dropped</h2>
+        <div class="grade" id="grade"></div>
+        <div class="score" id="winMoves"></div>
+        <div class="breakdown" id="breakdown"></div>
+        <div class="trail" id="trail"></div>
+        <div class="winstats">
+          <div class="srow">
+            <div class="scell"><b id="stPlayed">0</b><span>Played</span></div>
+            <div class="scell"><b id="stStreak">0</b><span>Streak</span></div>
+            <div class="scell"><b id="stMax">0</b><span>Max streak</span></div>
+          </div>
+          <div class="sdist" id="stDist"></div>
+        </div>
+        <div class="next-page" id="winNext"><span class="nl">Next board in</span><b class="nt" id="countdown"></b></div>
+        <div class="win-more-games">
+          <span class="nl">Keep playing</span>
+          <div class="win-more-games-row">
+            <a class="win-game-link" href="https://akashramsankar.github.io/Tumbler/" target="_blank" rel="noopener">Tumbler<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7"/><path d="M9 7h8v8"/></svg></a>
+            <a class="win-game-link" href="https://akashramsankar.github.io/currents/" target="_blank" rel="noopener">Currents<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7"/><path d="M9 7h8v8"/></svg></a>
+            <a class="win-game-link" href="https://akashramsankar.github.io/TypeSet/" target="_blank" rel="noopener">Typeset<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7"/><path d="M9 7h8v8"/></svg></a>
+          </div>
+        </div>
+        <div class="share" id="share"></div>
+        <button id="copyBtn" type="button">Share result</button>
+        <div id="lbJoin" hidden>
+          <div class="lb-msg" id="lbJoinMsg"></div>
+          <button id="lbJoinOpen" class="secondary" type="button">Today's leaderboard</button>
+        </div>
+        <button id="retryBtn" class="secondary" type="button">Try for fewer moves</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaderboard -->
+  <div class="modal" id="lbModal">
+    <div class="win-wrap">
+      <button class="x-close" type="button" aria-label="Close leaderboard" title="Close leaderboard"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <div class="win lb">
+        <h2>Leaderboard</h2>
+        <div class="lb-tabs" role="tablist" aria-label="Leaderboard day">
+          <button class="lb-tab on" type="button" role="tab" data-ago="0" aria-selected="true">Today</button>
+          <button class="lb-tab" type="button" role="tab" data-ago="1" aria-selected="false">Yesterday</button>
+        </div>
+        <div class="arch-sub" id="lbSub"></div>
+        <div class="lb-list" id="lbList"></div>
+        <div class="lb-msg" id="lbYou"></div>
+        <button class="secondary" type="button" data-close>Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Name card -->
+  <div class="modal" id="nameModal">
+    <div class="win-wrap">
+      <button class="x-close" type="button" aria-label="Close" title="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <div class="win nameplate">
+        <div class="rsub">Today's leaderboard</div>
+        <h2 id="nameTitle">Sign your board</h2>
+        <div class="ntext" id="nameText"></div>
+        <div class="lb-row you npreview" id="namePreview">
+          <span class="lr">#</span><span class="ln"></span><span class="lm"></span><span class="ls"></span><span class="lt"></span>
+        </div>
+        <form id="nameForm" novalidate>
+          <input id="nameInput" maxlength="16" placeholder="Your name" autocomplete="nickname" autocapitalize="words"
+                 spellcheck="false" enterkeyhint="done" aria-label="Your name for the leaderboard" />
+          <button type="submit" id="nameSave">Post to leaderboard</button>
+        </form>
+        <button id="nameSkip" class="secondary" type="button" data-close>Not now</button>
+        <div class="nfoot">Shown to everyone on the board. You can change it any time.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="loading" id="loading"><span>Building today's board…</span></div>
+
+  <script>
+    // Theme toggle (display only). Unset = follow the OS; the button flips
+    // between light and dark from whatever is currently showing.
+    function currentTheme(){
+      var forced=document.documentElement.getAttribute("data-theme");
+      if(forced==="dark"||forced==="light") return forced;
+      return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    function applyThemeMeta(){
+      var dark=currentTheme()==="dark";
+      var btn=document.getElementById("themeBtn");
+      if(btn) btn.setAttribute("aria-label", dark ? "Switch to light mode" : "Switch to dark mode");
+      document.querySelectorAll('meta[name="theme-color"]').forEach(function(m){
+        m.setAttribute("content", dark ? "#171512" : "#f6f3ec");
+      });
+    }
+    function toggleTheme(){
+      var next=currentTheme()==="dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", next);
+      try{ localStorage.setItem("cascadeTheme", next); }catch(e){}
+      applyThemeMeta();
+    }
+    document.getElementById("themeBtn").addEventListener("click", toggleTheme);
+    applyThemeMeta();
+    window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyThemeMeta);
+  </script>
+  <script src="js/words.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
