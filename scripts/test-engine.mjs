@@ -80,6 +80,19 @@ const column = (cells, c) => Array.from({ length: E.ROWS }, (_, r) => cells[at(r
   assert(!res.state.cells.some((t) => t && t.t === E.STONE), 'adjacent stone is smashed');
   assert(res.pinches > 0 && res.state.cells[at(5, 1)]?.ch === 'K', 'empty column pinches: outer column shifts toward the centre');
 }
+{
+  // The walkthrough's practice board (TUTORIAL in js/app.js): its coach copy describes exactly this line.
+  const st = board(['A I I I A', 'E O E O E', 'T O N E S', 'S E N T W', 'R C G D #', '@ R @ L @'],
+    ['OUEAIOEAIU', 'PSAUIOEE', 'KLEIECBO', 'UAAHBIOA', 'EAGWORAA']);
+  const rest = E.resolveMove(st, [at(4, 0), at(3, 1), at(3, 0), at(2, 0)]);
+  assert(rest.word === 'REST' && rest.weights === 1 && !rest.cascades.length, 'walkthrough: REST drops the left weight, no cascade');
+  const pace = E.resolveMove(rest.state, [at(3, 1), at(4, 0), at(4, 1), at(5, 0)]);
+  assert(pace.word === 'PACE' && pace.cascades.join() === 'ONES' && pace.weights === 1 && pace.state.cells[at(5, 2)]?.t === E.WEIGHT,
+    `walkthrough: PACE cascades ONES and drops the right weight (got ${pace.cascades.join() || 'none'})`);
+  const kind = E.resolveMove(pace.state, [at(2, 2), at(2, 1), at(3, 2), at(4, 3)]);
+  assert(kind.word === 'KIND' && kind.weightsLeft === 0 && kind.phases.some((p) => p.stones?.length) && !kind.cascades.length,
+    'walkthrough: KIND smashes the stone and drops the last weight');
+}
 assert(E.matchWord(['C', '?', 'T']) !== null, 'wildcard C?T resolves to a word');
 assert(E.matchWord(['Z', 'Z', 'Z']) === null, 'ZZZ is rejected');
 

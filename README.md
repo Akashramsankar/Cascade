@@ -52,7 +52,8 @@ Cascade deliberately matches its sibling games:
 
 - **Design tokens:** the same palette, Fraunces and Libre Franklin fonts, 10px corners, and dark mode, copied from Currents.
 - **Masthead:** ? / archive / stats on the left, More games / theme on the right.
-- **Modals:** the `.win` card with an × close; a Typeset-style slide deck for How to play.
+- **Modals:** the `.win` card with an × close; a Typeset-style slide deck for How to play. Each slide loops a short clip (like a GIF) drawn with the real tile renderer, so it matches the board in both themes.
+- **Walkthrough:** as in Typeset, the first visit plays a guided practice board instead of opening the deck. A coach card lights one word per step (REST, then PACE, which fires a free ONES cascade, then KIND, which smashes the stone) and explains what the board just did. It never touches the clock, saves, stats or the leaderboard. The deck's *Play a practice board* button replays it, and `test-engine.mjs` checks that the line still plays out as the coach describes.
 - **Grades and stats:** Eagle / Birdie / Par / Bogey / Over, using Currents' stats schema (`played`, `currentStreak`, `maxStreak`, `lastWonDay`, `dist`). Only today's solve counts toward the streak.
 - **Hint and share:** a gold hint glow (first press shows the start tile, second shows the whole word). The share text uses Currents' format: `Cascade #N ★★★ / BIRDIE · 5/6 · 🔥3 · 💡1`, then one 🟢 per move, ⚡ per cascade and ⚫ per weight dropped.
 - **More games:** cards for Tumbler, Currents and Typeset, plus a Keep playing row on the results card.
@@ -66,7 +67,7 @@ Puzzle #1 is **27 Oct 2026**, launch day (`EPOCH` in `js/app.js`).
 | --- | --- |
 | `index.html`, `css/styles.css` | Page shell, modals and styles (shared tokens + the board) |
 | `js/engine.js` | Pure game logic: seeded generation, gravity, chutes, weights, pinch, cascades, solver, hint. Runs in Node too. Rule knobs live in `rules`. |
-| `js/app.js` | UI: drag/tap input, phase-by-phase animation, undo/reset, hint, archive, stats, share |
+| `js/app.js` | UI: drag/tap input, phase-by-phase animation, undo/reset, hint, archive, stats, share, How to play clips and the walkthrough |
 | `js/words.js` | Generated dictionary: ENABLE for valid words, ~7k common words for cascades, par and hints |
 | `scripts/build-words.mjs` | Rebuilds `js/words.js` from `data/` |
 | `scripts/test-engine.mjs` | Replays the solver on daily boards and checks each rule on hand-built boards |

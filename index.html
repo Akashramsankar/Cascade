@@ -104,6 +104,16 @@
     A <b>weight</b> drops once its column holds more vowels than consonants.
   </div>
 
+  <div class="coach" id="coach" role="status">
+    <div class="ct" id="coachTitle">Walkthrough</div>
+    <div class="cx" id="coachText"></div>
+    <div class="crow">
+      <span class="cp" id="coachProg"></span>
+      <button class="skip" id="coachSkip" type="button">Skip</button>
+      <button class="next" id="coachNext" type="button">Next</button>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
   <!-- Statistics -->
@@ -185,28 +195,21 @@
           <div class="sic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7l5 5-5 5"/><path d="M11 17h9"/></svg></div>
           <h3>Spell words</h3>
           <p class="sd">Drag (or tap) through <b>touching tiles</b> to spell a word of 3+ letters. Diagonals count. Each word is one move.</p>
-          <div class="mini-row" aria-hidden="true"><i class="pt">C</i><i class="pt vw">A</i><i class="pt">T</i></div>
+          <div class="demo" data-demo="spell" aria-hidden="true"></div>
         </div>
 
         <div class="slide">
           <div class="sic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18"/><path d="M8 7l4-4 4 4"/><path d="M8 17l4 4 4-4"/></svg></div>
           <h3>Oil &amp; water</h3>
           <p class="sd">After every word, the columns it touched close up. <b>Vowels rise</b> to the top and <b>consonants sink</b> to the bottom. New tiles drop in from the chutes above.</p>
-          <div class="demo-sort" aria-hidden="true">
-            <div class="mini-col"><i>R</i><i class="vw">E</i><i>T</i><i class="vw">O</i></div>
-            <div class="arrow"><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg></div>
-            <div class="mini-col"><i class="vw">E</i><i class="vw">O</i><i>R</i><i>T</i></div>
-          </div>
+          <div class="demo" data-demo="sort" aria-hidden="true"></div>
         </div>
 
         <div class="slide">
           <div class="sic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7a3 3 0 0 1 6 0"/><path d="M6.5 9h11l2 11h-15z"/></svg></div>
           <h3>Drop the weights</h3>
           <p class="sd">Three weights sit on the floor. A weight breaks loose once its column holds <b>more vowels than consonants</b>. The meter under each one keeps count.</p>
-          <div class="demo-weight" aria-hidden="true">
-            <div class="mini-col"><i class="vw">A</i><i class="vw">I</i><i>N</i><i class="wt"></i></div>
-            <div class="meter-demo"><span class="up">▲2</span><span class="dn">▼1</span></div>
-          </div>
+          <div class="demo" data-demo="weight" aria-hidden="true"></div>
           <p class="note">Spend consonants, save vowels. Long, consonant-heavy words are gold.</p>
         </div>
 
@@ -214,7 +217,7 @@
           <div class="sic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></div>
           <h3>Cascades</h3>
           <p class="sd">If shifting tiles line up an everyday word by themselves (reading <b>→</b> or <b>↓</b>), it clears automatically. <span class="jp">Cascades are free</span> and can chain.</p>
-          <div class="mini-row" aria-hidden="true"><i class="pt cs">S</i><i class="pt cs vw">U</i><i class="pt cs">N</i></div>
+          <div class="demo" data-demo="cascade" aria-hidden="true"></div>
         </div>
 
         <div class="slide">
@@ -230,6 +233,7 @@
         <div class="deck-nav">
           <div class="dots" id="deckDots"></div>
           <button id="deckNext" type="button">Next</button>
+          <button id="tutBtn" class="secondary" type="button">Play a practice board</button>
         </div>
       </div>
     </div>

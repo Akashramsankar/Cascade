@@ -50,6 +50,8 @@
   let hintMove = null;
   let hintLevel = 0;
   let hintText = ''; // shown in the word card while idle, so the board never shifts
+  let tutorialMode = false; // the practice board is up (see Walkthrough below)
+  let tutStep = 0;
   const tileEls = new Map();
 
   const sigOf = (p) => `${E.fingerprint()}:${p.salt}`;
@@ -57,6 +59,7 @@
   const snapshot = () => ({ state: game.state, moves: game.moves, log: game.log, wildUsed: game.wildUsed });
 
   function saveState() {
+    if (tutorialMode) return; // practice moves never touch a real day's save
     const all = readJSON(SAVE_KEY, {});
     all[activeDay] = { sig: sigOf(puzzle), ...game, time: elapsedNow() };
     writeJSON(SAVE_KEY, all);
@@ -135,7 +138,7 @@
      Undo and reset never rewind it, so the time a solve took is the leaderboard's tiebreak. */
   let runningSince = 0;
   const elapsedNow = () => (game ? game.time || 0 : 0) + (runningSince ? Date.now() - runningSince : 0);
-  function startClock() { if (game && !game.won && !runningSince && !document.hidden) runningSince = Date.now(); }
+  function startClock() { if (game && !tutorialMode && !game.won && !runningSince && !document.hidden) runningSince = Date.now(); }
   function pauseClock() { if (runningSince) { game.time = (game.time || 0) + Date.now() - runningSince; runningSince = 0; } }
   const fmtTime = (sec) => `${Math.floor(sec / 60)}:${pad(sec % 60)}`;
   function renderClock() {
@@ -285,14 +288,19 @@
     $('par').textContent = puzzle.par;
     $('weights').textContent = `${dropped}/3`;
     $('moves').parentElement.classList.toggle('over', game.moves > puzzle.par);
-    $('undoBtn').disabled = busy || game.won || !game.history.length;
-    $('resetBtn').disabled = busy || game.won || (!game.moves && !game.history.length);
-    $('hintBtn').disabled = busy || game.won;
+    $('undoBtn').disabled = busy || tutorialMode || game.won || !game.history.length;
+    $('resetBtn').disabled = busy || tutorialMode || game.won || (!game.moves && !game.history.length);
+    $('hintBtn').disabled = busy || tutorialMode || game.won;
     renderClock();
   }
 
   const DIFF_LABELS = ['', 'Very Easy', 'Easy', 'Medium', 'Hard', 'Expert'];
   function renderHeader() {
+    if (tutorialMode) {
+      $('dateLabel').textContent = 'Walkthrough · practice board';
+      $('difficulty').textContent = 'Practice';
+      return;
+    }
     const today = dayNumber();
     const d = dateForDay(activeDay).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
     $('dateLabel').textContent = `#${activeDay + 1} · ${d}${activeDay !== today ? ' · Archive' : ''}`;
@@ -304,7 +312,7 @@
     const line = $('wordLine');
     line.className = 'word-line';
     line.innerHTML = game.won
-      ? '<span class="ph">All three weights dropped. See you tomorrow.</span>'
+      ? `<span class="ph">${tutorialMode ? 'Practice board cleared.' : 'All three weights dropped. See you tomorrow.'}</span>`
       : hintText
         ? `<span class="msg gd">${hintText}</span>`
         : '<span class="ph">Drag across touching letters to spell a word</span>';
@@ -359,7 +367,7 @@
     toastTimer = setTimeout(() => { t.className = 'toast'; }, 1800);
   }
 
-  function floatLabel(tiles, text, kind = '') {
+  function floatLabel(tiles, text, kind = '', host = $('tiles')) {
     if (!tiles.length) return;
     let r = 0;
     let c = 0;
@@ -369,7 +377,7 @@
     f.style.setProperty('--r', r / tiles.length);
     f.style.setProperty('--c', c / tiles.length);
     f.innerHTML = `<span>${text}</span>`;
-    $('tiles').appendChild(f);
+    host.appendChild(f);
     setTimeout(() => f.remove(), 1000);
   }
 
@@ -392,7 +400,7 @@
     if (!path.length) showIdle();
   }
   function showMoveHint() {
-    if (busy || game.won) return;
+    if (busy || tutorialMode || game.won) return;
     if (!hintMove) {
       showHintText('Looking for a way through…');
       setTimeout(() => {
@@ -439,7 +447,7 @@
   const grid = $('grid');
 
   grid.addEventListener('pointerdown', (e) => {
-    if (busy || game.won || e.button > 0) return;
+    if (busy || game.won || e.button > 0 || (tutorialMode && !tutWord())) return;
     const i = hitTest(e, true);
     const t = i >= 0 ? game.state.cells[i] : null;
     if (!E.isSpellable(t)) {
@@ -535,6 +543,12 @@
     }
     const letters = E.pathLetters(game.state.cells, played);
     const word = E.matchWord(letters);
+    if (tutorialMode && !tutAccepts(played, word)) {
+      const tiles = played.map(tileAt);
+      renderPath();
+      reject(tiles, `Spell ${tutWord()} on the glowing tiles`);
+      return;
+    }
     if (!word) {
       const tiles = played.map(tileAt);
       renderPath();
@@ -544,6 +558,7 @@
 
     busy = true;
     clearHint();
+    if (tutorialMode) hideCoach();
     game.history = game.history.concat([snapshot()]);
     const res = E.resolveMove(game.state, played);
     game.moves += res.usedWild ? 2 : 1;
@@ -564,13 +579,16 @@
     if (res.weightsLeft === 0) {
       pauseClock();
       game.won = true;
-      recordWin(game.moves - puzzle.par);
-      lbRecordFirstWin();
+      if (!tutorialMode) {
+        recordWin(game.moves - puzzle.par);
+        lbRecordFirstWin();
+      }
     }
     busy = false;
     saveState();
     renderHud();
     if (game.won) await celebrate();
+    else if (tutorialMode) { showIdle(); tutGo(tutStep + 1); }
     else { showIdle(); checkStuck(); }
   }
 
@@ -624,7 +642,8 @@
       tile.style.setProperty('--delay', `${k * 35}ms`);
     });
     await wait(pace(1000));
-    showWin();
+    if (tutorialMode) tutFinish();
+    else showWin();
   }
 
   function checkStuck() {
@@ -645,14 +664,14 @@
     saveState();
   }
   function undoMove() {
-    if (busy || game.won || !game.history.length) return;
+    if (busy || tutorialMode || game.won || !game.history.length) return;
     const prev = game.history[game.history.length - 1];
     game.history = game.history.slice(0, -1);
     restore(prev);
     showMessage('Move undone');
   }
   function resetBoard() {
-    if (busy) return;
+    if (busy || tutorialMode) return;
     if (game.won) { // "Try for fewer moves" after a finish: a clean replay
       closeModal($('winModal'));
       game = freshGame();
@@ -848,7 +867,7 @@
       t.classList.toggle('on', on);
       t.setAttribute('aria-selected', on);
     });
-    const p = day === activeDay ? puzzle : puzzleForDay(day);
+    const p = day === activeDay && !tutorialMode ? puzzle : puzzleForDay(day);
     const dstr = dateForDay(day).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     $('lbSub').innerHTML = `Board #${day + 1} · ${dstr} · <span class="stars">${'★'.repeat(p.stars)}</span> · Par ${p.par}<br>Ranked by score (moves + hints), then time`;
     list.innerHTML = '<div class="lb-empty">Loading…</div>';
@@ -977,7 +996,7 @@
   function closeModal(m) {
     m.classList.remove('show');
     if (m.id === 'winModal') clearInterval(countdownTimer);
-    if (m.id === 'rulesModal') { try { localStorage.setItem(SEEN_KEY, '1'); } catch (e) { /* ignore */ } startClock(); }
+    if (m.id === 'rulesModal') { stopDemos(); try { localStorage.setItem(SEEN_KEY, '1'); } catch (e) { /* ignore */ } startClock(); }
     if (m.id === 'nameModal') nameCtx = null;
   }
   document.querySelectorAll('.modal').forEach((m) => {
@@ -995,15 +1014,321 @@
     $('deckDots').innerHTML = slides.map((_, k) => `<button type="button" class="${k === n ? 'on' : ''}" aria-label="Slide ${k + 1}"></button>`).join('');
     $('deckDots').querySelectorAll('button').forEach((b, k) => b.addEventListener('click', () => showSlide(k)));
     $('deckNext').textContent = n === slides.length - 1 ? 'Got it — let’s play' : 'Next';
+    const demo = slides[n].querySelector('.demo');
+    if (demo && $('rulesModal').classList.contains('show')) playDemo(demo);
+    else stopDemos();
   }
   $('deckNext').addEventListener('click', () => {
     if (slideAt < slides.length - 1) showSlide(slideAt + 1);
     else closeModal($('rulesModal'));
   });
-  $('helpBtn').addEventListener('click', () => { showSlide(0); openModal($('rulesModal')); });
+  $('helpBtn').addEventListener('click', () => { openModal($('rulesModal')); showSlide(0); });
+  $('tutBtn').addEventListener('click', startTutorial);
 
   $('statsBtn').addEventListener('click', () => { renderStats('sm', loadStats(), null); openModal($('statsModal')); });
   $('gamesBtn').addEventListener('click', () => openModal($('gamesModal')));
+
+  /* ---------------- How-to-play clips ----------------
+     Each slide loops a few seconds of play, like a GIF, drawn with the real
+     tile renderer so it matches the board in both themes. Only the slide on
+     screen plays; changing slide or closing the deck stops it. */
+  const DEMO_CELL = 30;
+  const DEMO_STEP = DEMO_CELL + 4;
+  const DEMO_STOP = {};
+  let demoRun = 0;
+  const stopDemos = () => { demoRun++; };
+
+  /** A tiny board in `host`: rows of letters ('.' empty, '@' weight), keyed by starting cell ('rc'). */
+  function demoStage(host, run) {
+    const tiles = new Map();
+    let rowsN = 0;
+    let grid;
+    let trace;
+    const get = (keys) => keys.map((k) => tiles.get(k)).filter(Boolean);
+    const d = {
+      board(rows, { chute = '', meter = false } = {}) {
+        rowsN = rows.length;
+        const cols = rows[0].length;
+        host.innerHTML = `<div class="demo-board" style="--cols:${cols};--rows:${rowsN}">` +
+          (chute ? '<div class="chutes demo-chutes"></div>' : '') +
+          '<div class="demo-grid"><div class="wells"></div><div class="demo-tiles"></div><svg class="demo-trace"><polyline/></svg></div>' +
+          (meter ? '<div class="meters demo-meters"><div class="meter"></div></div>' : '') +
+          '</div><div class="demo-word"></div>';
+        host.querySelector('.wells').innerHTML = rows.map((line) =>
+          [...line].map((ch) => `<span${ch === '@' ? ' class="floor"' : ''}></span>`).join('')).join('');
+        grid = host.querySelector('.demo-tiles');
+        trace = host.querySelector('.demo-trace');
+        rows.forEach((line, r) => [...line].forEach((ch, c) => { if (ch !== '.') d.add(`${r}${c}`, ch, r, c, false); }));
+        if (chute) d.chute(chute);
+      },
+      add(key, ch, r, c, appear = true) {
+        const tile = makeTile(ch === '@' ? { t: E.WEIGHT, ch: '' } : { t: E.LETTER, ch });
+        place(tile, r, c);
+        if (appear) tile.classList.add('appear');
+        grid.appendChild(tile);
+        tiles.set(key, tile);
+      },
+      async step(ms) {
+        await wait(ms);
+        if (run !== demoRun) throw DEMO_STOP;
+      },
+      say(text, kind = '') { host.querySelector('.demo-word').innerHTML = `<span class="${kind}">${text}</span>`; },
+      mark(keys, cls) { get(keys).forEach((t) => t.classList.add(cls)); },
+      /** The traced path, as on the board: tiles light up and a line joins them. */
+      path(keys, ok = false) {
+        for (const t of tiles.values()) t.classList.remove('in-path', 'ok');
+        get(keys).forEach((t) => t.classList.add('in-path', ...(ok ? ['ok'] : [])));
+        trace.classList.toggle('ok', ok);
+        trace.firstChild.setAttribute('points', get(keys).map((t) =>
+          `${t.dataset.c * DEMO_STEP + DEMO_CELL / 2},${t.dataset.r * DEMO_STEP + DEMO_CELL / 2}`).join(' '));
+      },
+      pop(keys) {
+        get(keys).forEach((t) => { t.classList.remove('in-path', 'ok', 'zap'); t.firstChild.classList.add('pop'); });
+        keys.forEach((k) => tiles.delete(k));
+      },
+      move(key, r, c) {
+        const t = tiles.get(key);
+        const dist = Math.abs(r - t.dataset.r) + Math.abs(c - t.dataset.c);
+        t.style.setProperty('--dur', `${pace(160 + dist * 70)}ms`);
+        t.classList.toggle('sinking', r > t.dataset.r);
+        t.classList.toggle('rising', r < t.dataset.r);
+        place(t, r, c);
+      },
+      drop(key) {
+        const t = tiles.get(key);
+        t.classList.add('dropping');
+        t.style.setProperty('--r', rowsN + 0.8);
+        floatLabel([t], 'Dropped!', 'drop', grid);
+      },
+      float(keys, text) { floatLabel(get(keys), text, '', grid); },
+      chute(chs) {
+        host.querySelector('.demo-chutes').innerHTML = `<div class="chute">${[...chs].slice(0, 2).map((ch) =>
+          `<i class="${'AEIOU'.includes(ch) ? 'vw' : ''}">${ch}</i>`).join('')}</div>`;
+      },
+      meter(up, dn, done = false) {
+        const m = host.querySelector('.meter');
+        m.className = `meter${up === dn ? ' close' : ''}${done ? ' done' : ''}`;
+        m.innerHTML = `<span class="up">▲${up}</span><span class="dn">▼${dn}</span>`;
+      },
+    };
+    return d;
+  }
+
+  const DEMOS = {
+    // Trace C → A → T (the last step is diagonal), then the word clears.
+    async spell(d) {
+      d.board(['SCO', 'RAI', 'TPN']);
+      d.say('Drag across touching tiles');
+      await d.step(900);
+      const cat = ['01', '11', '20'];
+      for (let k = 1; k <= cat.length; k++) {
+        d.path(cat.slice(0, k));
+        d.say('CAT'.slice(0, k), 'w');
+        await d.step(450);
+      }
+      d.path(cat, true);
+      d.say('CAT', 'w ok');
+      await d.step(800);
+      d.path([]);
+      d.pop(cat);
+      d.say('One word, one move');
+      await d.step(1800);
+    },
+    // T is spent; the column closes up with vowels on top, then the chute tops it up.
+    async sort(d) {
+      d.board(['R', 'E', 'T', 'O', 'S'], { chute: 'AU' });
+      d.say('A column, mid-game');
+      await d.step(900);
+      d.mark(['20'], 'in-path');
+      d.say('T is spent in a word');
+      await d.step(800);
+      d.pop(['20']);
+      await d.step(450);
+      d.move('30', 2, 0);
+      d.move('00', 3, 0);
+      d.say('<span class="vw">Vowels rise</span> · consonants sink');
+      await d.step(1300);
+      d.add('in', 'A', 0, 0);
+      d.chute('U');
+      d.say('A new tile drops in from the chute');
+      await d.step(2000);
+    },
+    // Spend N and D: the chute adds a vowel, ▲ passes ▼ and the weight falls.
+    async weight(d) {
+      d.board(['A', 'N', 'D', 'T', '@'], { chute: 'IE', meter: true });
+      d.meter(1, 3);
+      d.say('▲1 vowel · ▼3 consonants');
+      await d.step(1100);
+      d.mark(['10', '20'], 'in-path');
+      d.say('Spend two consonants');
+      await d.step(800);
+      d.pop(['10', '20']);
+      d.meter(1, 1);
+      await d.step(400);
+      d.move('00', 2, 0);
+      await d.step(500);
+      d.add('in', 'I', 0, 0);
+      d.chute('E');
+      await d.step(300);
+      d.move('in', 1, 0);
+      d.meter(2, 1);
+      d.say('▲2 beats ▼1');
+      await d.step(700);
+      d.drop('40');
+      d.meter(2, 1, true);
+      await d.step(500);
+      d.move('in', 2, 0);
+      d.move('00', 3, 0);
+      d.move('30', 4, 0);
+      d.say('Weight dropped');
+      await d.step(1800);
+    },
+    // GET clears; U falls between S and N and SUN reads across by itself.
+    async cascade(d) {
+      d.board(['.U.', '.GE', 'STN']);
+      d.say('Play a word…');
+      await d.step(900);
+      const get = ['11', '12', '21'];
+      for (let k = 1; k <= get.length; k++) {
+        d.path(get.slice(0, k));
+        d.say('GET'.slice(0, k), 'w');
+        await d.step(420);
+      }
+      d.path(get, true);
+      await d.step(500);
+      d.path([]);
+      d.pop(get);
+      await d.step(400);
+      d.move('01', 2, 1);
+      await d.step(600);
+      d.mark(['20', '01', '22'], 'zap');
+      d.say('⚡ SUN lined up: a free clear', 'jp');
+      d.float(['01'], 'SUN');
+      await d.step(900);
+      d.pop(['20', '01', '22']);
+      await d.step(1800);
+    },
+  };
+
+  async function playDemo(host) {
+    const run = ++demoRun;
+    try {
+      for (;;) await DEMOS[host.dataset.demo](demoStage(host, run));
+    } catch (e) {
+      if (e !== DEMO_STOP) throw e;
+    }
+  }
+
+  /* ---------------- Walkthrough (as in Typeset) ----------------
+     A hand-built practice board, outside the daily rotation, played on the live
+     engine. Each step lights the tiles of one word; the player's own drag plays
+     it, and a coach card explains what the board just did. tutorialMode keeps
+     the clock, saves, stats and leaderboard out of it. Line checked against the
+     engine: REST drops the left weight, PACE fires a free ONES cascade that drops
+     the right one, KIND smashes the stone and drops the last. */
+  const TUTORIAL = {
+    rows: ['A I I I A', 'E O E O E', 'T O N E S', 'S E N T W', 'R C G D #', '@ R @ L @'],
+    chutes: ['OUEAIOEAIU', 'PSAUIOEE', 'KLEIECBO', 'UAAHBIOA', 'EAGWORAA'],
+  };
+  const TUT_STEPS = [
+    { t: 'Welcome', next: 'Show me',
+      x: 'This practice board plays out one short game. Three <b>weights</b> sit on the floor, and you want all three gone. A weight drops once its column holds <b>more vowels than consonants</b>. The <span class="vw">▲</span>/▼ meter under it keeps count.' },
+    { t: 'Spell a word', word: 'REST', at: [[4, 0], [3, 1], [3, 0], [2, 0]],
+      x: 'Drag through the glowing tiles to spell <b>REST</b>, starting on the R. Diagonals count. It spends three consonants from the left column, which is exactly what that weight needs.' },
+    { t: 'One down',
+      x: 'Only vowels were left above the left weight, so it fell off the board. Then the column closed up, <span class="vw">vowels on top</span>, and new tiles dropped in from the chute above it.' },
+    { t: 'Watch for cascades', word: 'PACE', at: [[3, 1], [4, 0], [4, 1], [5, 0]],
+      x: 'Now spell <b>PACE</b>. Keep an eye on the third row while the tiles settle.' },
+    { t: 'A free clear',
+      x: 'The shifting tiles lined up <span class="jp">ONES</span> on their own, so it cleared for free. It took an S out of the right column, a vowel dropped in, and that weight fell too. Cascades never cost a move.' },
+    { t: 'Smash the stone', word: 'KIND', at: [[2, 2], [2, 1], [3, 2], [4, 3]],
+      x: 'Last weight. The hatched tile in the corner is <b>stone</b>: it can\'t be spelled and sinks like a consonant. Spell <b>KIND</b>. Its D touches the stone, which smashes it.' },
+  ];
+  const tutWord = () => (tutorialMode && TUT_STEPS[tutStep] && TUT_STEPS[tutStep].word) || '';
+  // The step's word on exactly its tiles (in either order the dictionary accepts).
+  function tutAccepts(played, word) {
+    const st = TUT_STEPS[tutStep];
+    if (!st || !st.at || word !== st.word) return false;
+    const want = st.at.map(([r, c]) => r * E.COLS + c);
+    return played.length === want.length && want.every((i) => played.includes(i));
+  }
+
+  function tutorialBoard() {
+    let id = 0;
+    const tile = (ch) => (ch === '@' ? { id: id++, t: E.WEIGHT, ch: '' } : ch === '#' ? { id: id++, t: E.STONE, ch: '' } : { id: id++, t: E.LETTER, ch });
+    return {
+      cells: TUTORIAL.rows.flatMap((line) => line.split(' ').map(tile)),
+      queue: TUTORIAL.chutes.map((q) => [...q].map(tile)),
+    };
+  }
+
+  function coach(title, text, { next = null, prog = '', skip = true } = {}) {
+    $('coachTitle').textContent = title;
+    $('coachText').innerHTML = text;
+    $('coachProg').textContent = prog;
+    $('coachNext').hidden = !next;
+    $('coachNext').textContent = next || '';
+    $('coachSkip').hidden = !skip;
+    $('coach').classList.add('show');
+  }
+  function hideCoach() { $('coach').classList.remove('show'); }
+  /* The coach sits over the bottom of the viewport, so pad the page by its
+     height and scroll the board up to just above it. */
+  function tutScroll() {
+    const pad = $('coach').offsetHeight + 28;
+    document.body.style.paddingBottom = `${pad}px`;
+    $('stage').style.scrollMarginBottom = `${pad}px`;
+    $('stage').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'end' });
+  }
+  function tutGo(step) {
+    tutStep = step;
+    clearHint();
+    const st = TUT_STEPS[step];
+    if (!st) return;
+    if (st.at) st.at.forEach(([r, c]) => { const t = tileAt(r * E.COLS + c); if (t) t.classList.add('hint-lane'); });
+    setTimeout(() => {
+      if (!tutorialMode || tutStep !== step) return;
+      coach(st.t, st.x, { next: st.word ? null : st.next || 'Next', prog: `${step + 1} / ${TUT_STEPS.length}` });
+      tutScroll();
+    }, 150);
+  }
+  function tutFinish() {
+    coach('All three weights dropped 🎉',
+      'That\'s Cascade. Each day brings a new board and a <b>par</b> to beat: finish under it for a Birdie or Eagle. A gold <span class="gd">?</span> wildcard can be any letter but costs 2 moves, and <b>Hint</b> lights up a word when you\'re stuck.',
+      { next: 'Play today\'s puzzle', skip: false });
+    tutScroll();
+  }
+  function startTutorial() {
+    if (busy) return;
+    stopDemos();
+    document.querySelectorAll('.modal.show').forEach((m) => m.classList.remove('show'));
+    clearInterval(countdownTimer);
+    try { localStorage.setItem(SEEN_KEY, '1'); } catch (e) { /* ignore */ }
+    if (!tutorialMode && game) { pauseClock(); saveState(); } // bank the real board before swapping it out
+    tutorialMode = true;
+    puzzle = { day: activeDay, par: TUT_STEPS.filter((st) => st.word).length, best: 3, stars: 1, start: tutorialBoard() };
+    game = freshGame();
+    showBoard();
+    tutGo(0);
+  }
+  // Drop the practice board without loading another (loadDay does that).
+  function leaveTutorial() {
+    tutorialMode = false;
+    tutStep = 0;
+    game = null;
+    hideCoach();
+    document.body.style.paddingBottom = '';
+  }
+  function endTutorial() {
+    leaveTutorial();
+    loadDay(activeDay);
+    window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
+  }
+  $('coachNext').addEventListener('click', () => {
+    if (game && game.won) endTutorial(); // the closing card
+    else tutGo(tutStep + 1);
+  });
+  $('coachSkip').addEventListener('click', endTutorial);
 
   function buildArchive() {
     const today = Math.max(0, dayNumber());
@@ -1034,12 +1359,19 @@
 
   /* ---------------- Boot ---------------- */
   function loadDay(day) {
-    if (game) { pauseClock(); saveState(); }
+    if (tutorialMode) leaveTutorial();
+    else if (game) { pauseClock(); saveState(); }
     activeDay = day;
     puzzle = puzzleForDay(day);
     if (new URLSearchParams(location.search).has('debug')) console.info(`Cascade #${day + 1} par ${puzzle.par}:`, puzzle.solution.join(' → '));
     const saved = loadState(day);
     game = saved ? { ...freshGame(), ...saved } : freshGame();
+    showBoard();
+    if (game.won) setTimeout(showWin, 600);
+    else if (!$('rulesModal').classList.contains('show')) startClock();
+  }
+
+  function showBoard() {
     path = [];
     clearHint();
     tileEls.forEach((t) => t.remove());
@@ -1052,8 +1384,6 @@
     renderHud();
     showIdle();
     checkStuck();
-    if (game.won) setTimeout(showWin, 600);
-    else if (!$('rulesModal').classList.contains('show')) startClock();
   }
 
   function boot() {
@@ -1064,9 +1394,9 @@
     const day = asked && /^\d{4}-\d{2}-\d{2}$/.test(asked) ? Math.max(0, dayForKey(asked)) : Math.max(0, dayNumber());
     let seen = false;
     try { seen = !!localStorage.getItem(SEEN_KEY); } catch (e) { /* ignore */ }
-    if (!seen) openModal($('rulesModal')); // the clock waits for the deck to close
     showSlide(0);
     loadDay(day);
+    if (!seen) startTutorial(); // first visit plays the walkthrough; after that ? opens the deck
     void markVisit();
     $('loading').classList.add('gone');
     setTimeout(() => $('loading').remove(), 300);
