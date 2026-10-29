@@ -1004,6 +1004,11 @@
       if (e.target === m || e.target.closest('.x-close') || e.target.closest('[data-close]')) closeModal(m);
     });
   });
+  // A card that scrolls grows a scrollbar under the pinned x; --sbw shifts the x
+  // left of it so it never covers (or swallows clicks meant for) the bar.
+  const sbObs = new ResizeObserver((es) => es.forEach(({ target: w }) =>
+    w.parentElement.style.setProperty('--sbw', `${w.offsetWidth - w.clientWidth}px`)));
+  document.querySelectorAll('.win-wrap > .win').forEach((w) => sbObs.observe(w));
 
   // How to play: Typeset-style deck
   const slides = [...document.querySelectorAll('#rulesModal .slide')];
