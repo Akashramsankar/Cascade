@@ -313,7 +313,7 @@ button.act:disabled{opacity:.55; cursor:default;}
   font-size:.95rem; font-weight:600; letter-spacing:.01em; cursor:pointer;
   transition:background .15s ease, transform .1s ease;
 }
-.win button:not(.arch-row):not(.lb-tab):not(.lnk):hover{background:#322f2a;}
+.win button:not(.arch-row):not(.secondary):not(.lb-tab):not(.lnk):hover{background:#322f2a;}
 .win button:not(.arch-row):active{transform:scale(.985);}
 .win button.secondary{background:var(--card); color:var(--ink); padding:12px 20px; font-size:.92rem;}
 .win button.secondary:hover{background:var(--hover);}
