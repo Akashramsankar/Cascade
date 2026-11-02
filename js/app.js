@@ -514,7 +514,8 @@
   document.addEventListener('keydown', (e) => {
     const open = document.querySelector('.modal.show');
     if (open) {
-      if (e.key === 'Escape') closeModal(open);
+      if (open.id === 'readyModal') { if (e.key === 'Enter') $('readyStart').click(); } // the ready card only leaves via Start
+      else if (e.key === 'Escape') closeModal(open);
       return;
     }
     if (busy) return;
@@ -1001,6 +1002,7 @@
   }
   document.querySelectorAll('.modal').forEach((m) => {
     m.addEventListener('click', (e) => {
+      if (m.id === 'readyModal') return;
       if (e.target === m || e.target.closest('.x-close') || e.target.closest('[data-close]')) closeModal(m);
     });
   });
@@ -1373,8 +1375,27 @@
     game = saved ? { ...freshGame(), ...saved } : freshGame();
     showBoard();
     if (game.won) setTimeout(showWin, 600);
-    else if (!$('rulesModal').classList.contains('show')) startClock();
+    else showReady(); // the clock starts from the ready card, not on load
   }
+
+  // Ready card (as in Typeset): the board waits, blurred, until the player says go.
+  function showReady() {
+    const isToday = activeDay === dayNumber();
+    const s = loadStats();
+    const resuming = game.time > 0 || game.moves > 0 || game.history.length > 0;
+    $('readyTitle').textContent = isToday ? 'Today\'s board' : `Puzzle #${activeDay + 1}`;
+    $('readySub').innerHTML = (isToday ? `Puzzle #${activeDay + 1} · ` : '') +
+      `<span class="stars">${'★'.repeat(puzzle.stars)}${'☆'.repeat(5 - puzzle.stars)}</span> ${DIFF_LABELS[puzzle.stars]} · Par ${puzzle.par}`;
+    $('rdPlayed').textContent = s.played;
+    $('rdStreak').textContent = s.currentStreak;
+    $('rdMax').textContent = s.maxStreak;
+    $('readyText').textContent = resuming
+      ? 'The clock is paused. It picks up where you left off.'
+      : 'The clock starts when you begin. Fewest moves wins, and time breaks ties on the leaderboard.';
+    $('readyStart').textContent = resuming ? 'Resume' : 'Start';
+    openModal($('readyModal'));
+  }
+  $('readyStart').addEventListener('click', () => { closeModal($('readyModal')); startClock(); });
 
   function showBoard() {
     path = [];

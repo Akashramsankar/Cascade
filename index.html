@@ -317,6 +317,25 @@
     </div>
   </div>
 
+  <!-- Ready card: the board waits, blurred, until the player says go -->
+  <div class="modal" id="readyModal">
+    <div class="win-wrap">
+      <div class="win ready">
+        <h2 id="readyTitle">Today's board</h2>
+        <div class="rsub" id="readySub"></div>
+        <div class="winstats">
+          <div class="srow">
+            <div class="scell"><b id="rdPlayed">0</b><span>Played</span></div>
+            <div class="scell"><b id="rdStreak">0</b><span>Streak</span></div>
+            <div class="scell"><b id="rdMax">0</b><span>Max streak</span></div>
+          </div>
+        </div>
+        <div class="rtext" id="readyText"></div>
+        <button id="readyStart" type="button">Start</button>
+      </div>
+    </div>
+  </div>
+
   <div class="loading" id="loading"><span>Building today's board…</span></div>
 
   <script>

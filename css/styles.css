@@ -498,6 +498,13 @@ button.act:disabled{opacity:.55; cursor:default;}
 .win .lb-msg button.lnk:not(.arch-row):active{transform:none;}
 #lbJoin[hidden]{display:none;}
 
+/* ready card: the board sits blurred behind it until Start */
+#readyModal{backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);}
+.ready .rsub{font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; font-weight:600; color:var(--ink-muted); margin:0 0 4px;}
+.ready .rsub .stars{color:var(--accent-ink);}
+.ready .winstats{margin:16px 0 14px; padding:14px 0; border-bottom:1px solid var(--rule);}
+.ready .rtext{color:var(--ink-soft); font-size:.92rem; line-height:1.55; margin:6px 0 14px;}
+
 /* name card: a dedicated step the first time a result can be posted */
 .nameplate .rsub{font-size:.72rem; letter-spacing:.14em; text-transform:uppercase; font-weight:600; color:var(--accent-ink); margin:0 0 4px;}
 .nameplate .ntext{color:var(--ink-soft); font-size:.92rem; line-height:1.55; margin:6px 0 16px;}
