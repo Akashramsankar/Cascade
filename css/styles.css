@@ -345,7 +345,7 @@ button.act:disabled{opacity:.55; cursor:default;}
 /* compact more-games row in the win modal */
 .win-more-games{margin:14px 0 0; padding-top:12px; border-top:1px solid var(--rule);}
 .win-more-games .nl{display:block; font-size:.64rem; color:var(--ink-muted); letter-spacing:.1em; text-transform:uppercase; font-weight:600; margin-bottom:8px;}
-.win-more-games-row{display:flex; gap:8px;}
+.win-more-games-row{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
 .win-game-link{flex:1; display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:9px 10px;
   border-radius:999px; background:var(--card); border:1px solid var(--rule); color:var(--ink);
   font-size:.82rem; font-weight:600; text-decoration:none; transition:border-color .15s, background .15s;}
