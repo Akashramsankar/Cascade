@@ -66,6 +66,22 @@
     <div class="sub meta" id="dateLabel"></div>
   </header>
 
+  <div class="new-game-banner" id="newGameBanner">
+    <a class="ngb-link" href="https://akashramsankar.github.io/fulcrum/" target="_blank" rel="noopener">
+      <span class="ngb-tag">New</span>
+      <span class="ngb-text">Try <b>Fulcrum</b>, our new daily word balance puzzle</span>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7"/><path d="M9 7h8v8"/></svg>
+    </a>
+    <button class="ngb-close" type="button" aria-label="Dismiss Fulcrum banner" title="Dismiss"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <script>
+    (function(){
+      var b=document.getElementById('newGameBanner'), K='fulcrum_banner_dismissed';
+      try{ if(localStorage.getItem(K)) b.hidden=true; }catch(e){}
+      b.querySelector('.ngb-close').addEventListener('click',function(){ b.hidden=true; try{localStorage.setItem(K,'1');}catch(e){} });
+    })();
+  </script>
+
   <div class="card">
     <div class="clue-head">
       <span class="clue-label" id="wordLabel">Your word</span>

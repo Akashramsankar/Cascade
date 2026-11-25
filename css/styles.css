@@ -582,3 +582,29 @@ button.act:disabled{opacity:.55; cursor:default;}
     animation-duration:.01ms!important; animation-iteration-count:1!important; transition-duration:.01ms!important;
   }
 }
+
+  /* ==================== NEW GAME BANNER ==================== */
+  .new-game-banner{
+    width:100%; max-width:420px; display:flex; align-items:center; gap:4px;
+    background:var(--surface); border:1px solid var(--rule); border-radius:12px;
+    padding:4px 4px 4px 12px; box-sizing:border-box;
+  }
+  .new-game-banner[hidden]{display:none;}
+  .ngb-link{
+    flex:1; min-width:0; display:flex; align-items:center; gap:10px;
+    color:var(--ink-soft); text-decoration:none; font-size:.85rem; line-height:1.3; padding:6px 0;
+  }
+  .ngb-link b{color:var(--ink); font-weight:700;}
+  .ngb-link:hover .ngb-text{text-decoration:underline; text-underline-offset:2px;}
+  .ngb-tag{
+    flex:none; font-size:.62rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--accent-ink); background:var(--accent-soft); border-radius:999px; padding:3px 8px;
+  }
+  .ngb-text{flex:1; min-width:0;}
+  .ngb-link svg,.ngb-close svg{width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; flex:none;}
+  .ngb-link svg{color:var(--accent-ink);}
+  .ngb-close{
+    flex:none; width:32px; height:32px; border:none; background:transparent; color:var(--ink-muted);
+    border-radius:999px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center;
+  }
+  .ngb-close:hover{background:var(--surface-2); color:var(--ink);}
